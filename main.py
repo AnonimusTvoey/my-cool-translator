@@ -6,7 +6,7 @@ import threading
 import time
 
 # === НАСТРОЙКИ ===
-API_KEY = "ВСТАВЬ_СВОЙ_КЛЮЧ_СЮДА"
+API_KEY = "AIzaSyCLQqsH95_EWeMlR6mjabUmiiJJsLyI4AU"
 # Переходим на Flash — она быстрее и дает больше бесплатных запросов
 MODEL_NAME = "gemini-1.5-flash" 
 URL = f"https://generativelanguage.googleapis.com/v1/models/{MODEL_NAME}:generateContent?key={API_KEY}"
