@@ -5,7 +5,7 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
-# Твой ключ (советую потом заменить на новый и никому не показывать)
+# Твой ключ (если этот не работает, создай НОВЫЙ в AI Studio)
 API_KEY = "AIzaSyAtg2QqnG_fr49XTTpvsUp-6yru1XxzElY"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
@@ -13,15 +13,24 @@ def ai_request(text, prompt):
     payload = {"contents": [{"parts": [{"text": f"{prompt}\n\nText: {text}"}]}]}
     try:
         response = requests.post(URL, json=payload, timeout=10)
-        return response.json()['candidates'][0]['content']['parts'][0]['text'].strip()
+        data = response.json()
+        
+        # Проверяем, есть ли ответ от ИИ
+        if 'candidates' in data:
+            return data['candidates'][0]['content']['parts'][0]['text'].strip()
+        elif 'error' in data:
+            # Если Google прислал ошибку, выводим её текст
+            return f"Ошибка Google API: {data['error'].get('message', 'Неизвестная ошибка')}"
+        else:
+            return f"Непонятный ответ от сервера: {str(data)}"
     except Exception as e:
-        return f"Ошибка: {str(e)}"
+        return f"Ошибка соединения: {str(e)}"
 
-def show_info(text):
+def show_info(title, text):
     root = tk.Tk()
     root.withdraw()
     root.attributes("-topmost", True)
-    messagebox.showinfo("Переводчик", text)
+    messagebox.showinfo(title, text)
     root.destroy()
 
 last_c_time = 0
@@ -32,10 +41,18 @@ def on_ctrl_c():
     now = time.time()
     if now - last_c_time < 0.5:
         source_text = pyperclip.paste()
-        # Инструкция для живого американского сленга
-        prompt = "Translate this to natural, casual American English. Use modern Gen-Z slang (no cap, fr, bussin, etc.) where it fits. Make it sound very alive."
-        translated_text = ai_request(source_text, prompt)
-        show_info(f"Перевод (Сленг):\n{translated_text}\n\nНажми Ctrl+R для замены текста.")
+        if not source_text.strip():
+            return
+            
+        prompt = "Translate this to natural, casual American English. Use modern Gen-Z slang. Make it sound very alive."
+        res = ai_request(source_text, prompt)
+        
+        if "Ошибка" in res:
+            show_info("Упс!", res)
+            translated_text = ""
+        else:
+            translated_text = res
+            show_info("Готово!", f"Перевод:\n{translated_text}\n\nНажми Ctrl+R для замены.")
     last_c_time = now
 
 def replace_text():
@@ -45,14 +62,14 @@ def replace_text():
 
 def eng_to_rus():
     source_text = pyperclip.paste()
-    prompt = "Переведи этот текст на русский язык. Пусть звучит естественно и современно."
-    res = ai_request(source_text, prompt)
-    show_info(f"Перевод на русский:\n{res}")
+    if not source_text.strip(): return
+    res = ai_request(source_text, "Переведи на русский язык, живым языком.")
+    show_info("Перевод на русский", res)
 
 # Горячие клавиши
 keyboard.add_hotkey('ctrl+c', on_ctrl_c)
 keyboard.add_hotkey('ctrl+r', replace_text)
-keyboard.add_hotkey('alt+z', eng_to_rus) # Alt+Z для перевода с английского на русский
+keyboard.add_hotkey('alt+z', eng_to_rus)
 
-print("Приложение запущено!")
+print("Программа запущена и ждет нажатий...")
 keyboard.wait()
