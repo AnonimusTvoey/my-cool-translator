@@ -5,30 +5,36 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
-# Твой ключ (если этот не работает, создай НОВЫЙ в AI Studio)
+# ВНИМАНИЕ: Если этот ключ не работает, создай НОВЫЙ в Google AI Studio.
+# Тот, что ты скинул в чат, мог быть заблокирован системой безопасности Google.
 API_KEY = "AIzaSyAtg2QqnG_fr49XTTpvsUp-6yru1XxzElY"
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+
+# Обновленный URL (используем стабильную версию v1)
+URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def ai_request(text, prompt):
-    payload = {"contents": [{"parts": [{"text": f"{prompt}\n\nText: {text}"}]}]}
+    payload = {
+        "contents": [{
+            "parts": [{"text": f"{prompt}\n\nText: {text}"}]
+        }]
+    }
     try:
         response = requests.post(URL, json=payload, timeout=10)
         data = response.json()
         
-        # Проверяем, есть ли ответ от ИИ
         if 'candidates' in data:
             return data['candidates'][0]['content']['parts'][0]['text'].strip()
         elif 'error' in data:
-            # Если Google прислал ошибку, выводим её текст
             return f"Ошибка Google API: {data['error'].get('message', 'Неизвестная ошибка')}"
         else:
-            return f"Непонятный ответ от сервера: {str(data)}"
+            return f"Неизвестный формат ответа: {str(data)}"
     except Exception as e:
         return f"Ошибка соединения: {str(e)}"
 
 def show_info(title, text):
     root = tk.Tk()
     root.withdraw()
+    # Окно всегда будет поверх всех окон
     root.attributes("-topmost", True)
     messagebox.showinfo(title, text)
     root.destroy()
@@ -44,15 +50,16 @@ def on_ctrl_c():
         if not source_text.strip():
             return
             
-        prompt = "Translate this to natural, casual American English. Use modern Gen-Z slang. Make it sound very alive."
+        # Промпт для молодежного сленга
+        prompt = "Translate this to natural, casual American English. Use modern Gen-Z slang (no cap, fr, vibe, etc.). Make it sound like a native teen."
         res = ai_request(source_text, prompt)
         
         if "Ошибка" in res:
-            show_info("Упс!", res)
+            show_info("Проблема с API", res)
             translated_text = ""
         else:
             translated_text = res
-            show_info("Готово!", f"Перевод:\n{translated_text}\n\nНажми Ctrl+R для замены.")
+            show_info("Перевод (Сленг)", f"{translated_text}\n\n(Нажми Ctrl+R для замены)")
     last_c_time = now
 
 def replace_text():
@@ -63,13 +70,13 @@ def replace_text():
 def eng_to_rus():
     source_text = pyperclip.paste()
     if not source_text.strip(): return
-    res = ai_request(source_text, "Переведи на русский язык, живым языком.")
-    show_info("Перевод на русский", res)
+    res = ai_request(source_text, "Переведи на русский язык, живым и естественным языком.")
+    show_info("На русском", res)
 
 # Горячие клавиши
 keyboard.add_hotkey('ctrl+c', on_ctrl_c)
 keyboard.add_hotkey('ctrl+r', replace_text)
 keyboard.add_hotkey('alt+z', eng_to_rus)
 
-print("Программа запущена и ждет нажатий...")
+print("Программа запущена! Дважды нажми Ctrl+C для перевода.")
 keyboard.wait()
