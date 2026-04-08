@@ -5,15 +5,13 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
-# Если ты уже создал НОВЫЙ ключ, вставь его сюда. 
-# Если нет — попробуй пока со старым, но ошибка может смениться на "Invalid Key".
+# Вставь сюда свой НОВЫЙ ключ
 API_KEY = "AIzaSyDcTlUtgeiTD9fAUD26PVK9NDmUGw1kcJg"
 
-# МЕНЯЕМ URL на более гибкий формат v1beta (он лучше находит новые модели)
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# Пробуем достучаться через универсальный путь
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
 
 def ai_request(text, prompt):
-    # Упаковываем запрос правильно
     payload = {
         "contents": [{
             "parts": [{"text": f"{prompt}\n\nText: {text}"}]
@@ -26,10 +24,13 @@ def ai_request(text, prompt):
         if 'candidates' in data:
             return data['candidates'][0]['content']['parts'][0]['text'].strip()
         elif 'error' in data:
-            # Выводим подробности, если это ошибка ключа или лимита
-            return f"Google говорит: {data['error'].get('message', 'Неизвестная ошибка')}"
+            # Если не находит модель, попробуем сказать пользователю, что делать
+            msg = data['error'].get('message', '')
+            if "not found" in msg.lower():
+                return "Ошибка: Модель не найдена. Попробуй зайти в AI Studio и проверить доступность Gemini 1.5 Flash."
+            return f"Google говорит: {msg}"
         else:
-            return f"Странный ответ: {str(data)}"
+            return f"Формат ответа не распознан: {str(data)}"
     except Exception as e:
         return f"Ошибка сети: {str(e)}"
 
@@ -51,14 +52,14 @@ def on_ctrl_c():
         if not source_text or len(source_text.strip()) < 1:
             return
             
-        prompt = "Translate to casual American English with Gen-Z slang. No cap, make it sound natural for a young person."
+        prompt = "Translate to casual American English with Gen-Z slang. Use words like 'no cap', 'fr', 'bet'. Make it sound like a native teen."
         res = ai_request(source_text, prompt)
         
-        if "Google говорит" in res or "Ошибка" in res:
-            show_info("Упс, что-то не так", res)
+        if "Ошибка" in res or "Google говорит" in res:
+            show_info("Проблема", res)
         else:
             translated_text = res
-            show_info("Твой перевод", f"{translated_text}\n\nНажми Ctrl+R для замены текста.")
+            show_info("Перевод готов!", f"{translated_text}\n\nНажми Ctrl+R для замены текста.")
     last_c_time = now
 
 def replace_text():
@@ -69,13 +70,13 @@ def replace_text():
 def eng_to_rus():
     source_text = pyperclip.paste()
     if not source_text: return
-    res = ai_request(source_text, "Переведи на русский язык, живым языком.")
-    show_info("Перевод на русский", res)
+    res = ai_request(source_text, "Переведи на русский язык, живым и естественным языком.")
+    show_info("На русском", res)
 
 # Горячие клавиши
 keyboard.add_hotkey('ctrl+c', on_ctrl_c)
 keyboard.add_hotkey('ctrl+r', replace_text)
 keyboard.add_hotkey('alt+z', eng_to_rus)
 
-print("Программа обновлена и запущена!")
+print("Программа запущена. Пробуй!")
 keyboard.wait()
