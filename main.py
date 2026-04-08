@@ -6,7 +6,7 @@ import threading
 import time
 
 # === НАСТРОЙКИ ===
-API_KEY = "ВСТАВЬ_СВОЙ_КЛЮЧ"
+API_KEY = "AIzaSyDcTlUtgeiTD9fAUD26PVK9NDmUGw1kcJg"
 MODEL_NAME = "gemini-3.1-pro-preview" 
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
