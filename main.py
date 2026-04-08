@@ -5,36 +5,37 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
-# ВНИМАНИЕ: Если этот ключ не работает, создай НОВЫЙ в Google AI Studio.
-# Тот, что ты скинул в чат, мог быть заблокирован системой безопасности Google.
-API_KEY = "AIzaSyAtg2QqnG_fr49XTTpvsUp-6yru1XxzElY"
+# Если ты уже создал НОВЫЙ ключ, вставь его сюда. 
+# Если нет — попробуй пока со старым, но ошибка может смениться на "Invalid Key".
+API_KEY = "AIzaSyDcTlUtgeiTD9fAUD26PVK9NDmUGw1kcJg"
 
-# Обновленный URL (используем стабильную версию v1)
-URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# МЕНЯЕМ URL на более гибкий формат v1beta (он лучше находит новые модели)
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def ai_request(text, prompt):
+    # Упаковываем запрос правильно
     payload = {
         "contents": [{
             "parts": [{"text": f"{prompt}\n\nText: {text}"}]
         }]
     }
     try:
-        response = requests.post(URL, json=payload, timeout=10)
+        response = requests.post(URL, json=payload, timeout=15)
         data = response.json()
         
         if 'candidates' in data:
             return data['candidates'][0]['content']['parts'][0]['text'].strip()
         elif 'error' in data:
-            return f"Ошибка Google API: {data['error'].get('message', 'Неизвестная ошибка')}"
+            # Выводим подробности, если это ошибка ключа или лимита
+            return f"Google говорит: {data['error'].get('message', 'Неизвестная ошибка')}"
         else:
-            return f"Неизвестный формат ответа: {str(data)}"
+            return f"Странный ответ: {str(data)}"
     except Exception as e:
-        return f"Ошибка соединения: {str(e)}"
+        return f"Ошибка сети: {str(e)}"
 
 def show_info(title, text):
     root = tk.Tk()
     root.withdraw()
-    # Окно всегда будет поверх всех окон
     root.attributes("-topmost", True)
     messagebox.showinfo(title, text)
     root.destroy()
@@ -47,19 +48,17 @@ def on_ctrl_c():
     now = time.time()
     if now - last_c_time < 0.5:
         source_text = pyperclip.paste()
-        if not source_text.strip():
+        if not source_text or len(source_text.strip()) < 1:
             return
             
-        # Промпт для молодежного сленга
-        prompt = "Translate this to natural, casual American English. Use modern Gen-Z slang (no cap, fr, vibe, etc.). Make it sound like a native teen."
+        prompt = "Translate to casual American English with Gen-Z slang. No cap, make it sound natural for a young person."
         res = ai_request(source_text, prompt)
         
-        if "Ошибка" in res:
-            show_info("Проблема с API", res)
-            translated_text = ""
+        if "Google говорит" in res or "Ошибка" in res:
+            show_info("Упс, что-то не так", res)
         else:
             translated_text = res
-            show_info("Перевод (Сленг)", f"{translated_text}\n\n(Нажми Ctrl+R для замены)")
+            show_info("Твой перевод", f"{translated_text}\n\nНажми Ctrl+R для замены текста.")
     last_c_time = now
 
 def replace_text():
@@ -69,14 +68,14 @@ def replace_text():
 
 def eng_to_rus():
     source_text = pyperclip.paste()
-    if not source_text.strip(): return
-    res = ai_request(source_text, "Переведи на русский язык, живым и естественным языком.")
-    show_info("На русском", res)
+    if not source_text: return
+    res = ai_request(source_text, "Переведи на русский язык, живым языком.")
+    show_info("Перевод на русский", res)
 
 # Горячие клавиши
 keyboard.add_hotkey('ctrl+c', on_ctrl_c)
 keyboard.add_hotkey('ctrl+r', replace_text)
 keyboard.add_hotkey('alt+z', eng_to_rus)
 
-print("Программа запущена! Дважды нажми Ctrl+C для перевода.")
+print("Программа обновлена и запущена!")
 keyboard.wait()
