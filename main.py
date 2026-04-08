@@ -5,34 +5,31 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
-# Вставь сюда свой НОВЫЙ ключ
+# Твой новый ключ
 API_KEY = "AIzaSyDcTlUtgeiTD9fAUD26PVK9NDmUGw1kcJg"
 
-# Пробуем достучаться через универсальный путь
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={API_KEY}"
+# МЕНЯЕМ МОДЕЛЬ НА GEMINI-PRO
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
 
 def ai_request(text, prompt):
+    # У Gemini Pro чуть другой формат запроса, подправляем его
     payload = {
         "contents": [{
             "parts": [{"text": f"{prompt}\n\nText: {text}"}]
         }]
     }
     try:
-        response = requests.post(URL, json=payload, timeout=15)
+        response = requests.post(URL, json=payload, timeout=20)
         data = response.json()
         
         if 'candidates' in data:
             return data['candidates'][0]['content']['parts'][0]['text'].strip()
         elif 'error' in data:
-            # Если не находит модель, попробуем сказать пользователю, что делать
-            msg = data['error'].get('message', '')
-            if "not found" in msg.lower():
-                return "Ошибка: Модель не найдена. Попробуй зайти в AI Studio и проверить доступность Gemini 1.5 Flash."
-            return f"Google говорит: {msg}"
+            return f"Google говорит: {data['error'].get('message', 'Ошибка доступа')}"
         else:
-            return f"Формат ответа не распознан: {str(data)}"
+            return f"Ответ не распознан. Возможно, стоит включить VPN."
     except Exception as e:
-        return f"Ошибка сети: {str(e)}"
+        return f"Ошибка связи: {str(e)}"
 
 def show_info(title, text):
     root = tk.Tk()
@@ -52,14 +49,14 @@ def on_ctrl_c():
         if not source_text or len(source_text.strip()) < 1:
             return
             
-        prompt = "Translate to casual American English with Gen-Z slang. Use words like 'no cap', 'fr', 'bet'. Make it sound like a native teen."
+        prompt = "Translate to casual American English with Gen-Z slang (no cap, fr, bussin). Make it sound natural."
         res = ai_request(source_text, prompt)
         
-        if "Ошибка" in res or "Google говорит" in res:
+        if "Google говорит" in res or "Ошибка" in res:
             show_info("Проблема", res)
         else:
             translated_text = res
-            show_info("Перевод готов!", f"{translated_text}\n\nНажми Ctrl+R для замены текста.")
+            show_info("Перевод готов!", f"{translated_text}\n\nНажми Ctrl+R для замены.")
     last_c_time = now
 
 def replace_text():
@@ -70,7 +67,7 @@ def replace_text():
 def eng_to_rus():
     source_text = pyperclip.paste()
     if not source_text: return
-    res = ai_request(source_text, "Переведи на русский язык, живым и естественным языком.")
+    res = ai_request(source_text, "Переведи на русский язык, живым языком.")
     show_info("На русском", res)
 
 # Горячие клавиши
@@ -78,5 +75,5 @@ keyboard.add_hotkey('ctrl+c', on_ctrl_c)
 keyboard.add_hotkey('ctrl+r', replace_text)
 keyboard.add_hotkey('alt+z', eng_to_rus)
 
-print("Программа запущена. Пробуй!")
+print("Пробуем запуск через Gemini Pro...")
 keyboard.wait()
