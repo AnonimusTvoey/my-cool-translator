@@ -6,47 +6,40 @@ import threading
 import time
 
 # === НАСТРОЙКИ ===
-API_KEY = "AIzaSyDcTlUtgeiTD9fAUD26PVK9NDmUGw1kcJg"
-MODEL_NAME = "gemini-3.1-pro-preview" 
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
+API_KEY = "ВСТАВЬ_СВОЙ_КЛЮЧ_СЮДА"
+# Переходим на Flash — она быстрее и дает больше бесплатных запросов
+MODEL_NAME = "gemini-1.5-flash" 
+URL = f"https://generativelanguage.googleapis.com/v1/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 class TranslatorApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Настройка окна в стиле Discord
-        self.title("Gemini AI Translator")
+        self.title("Gemini Flash Translator")
         self.geometry("700x450")
         ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue") # Похоже на акцентный цвет Discord
+        ctk.set_default_color_theme("blue")
 
-        # Сетка
         self.grid_columnconfigure((0, 1), weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        # Заголовок
-        self.label = ctk.CTkLabel(self, text="GEMINI TRANSLATOR", font=ctk.CTkFont(size=20, weight="bold"))
+        self.label = ctk.CTkLabel(self, text="GEMINI FLASH 1.5", font=ctk.CTkFont(size=20, weight="bold"))
         self.label.grid(row=0, column=0, columnspan=2, padx=20, pady=10)
 
-        # Левое поле (Оригинал)
         self.input_text = ctk.CTkTextbox(self, width=300, corner_radius=10, fg_color="#2f3136", border_color="#202225")
         self.input_text.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
-        self.input_text.insert("0.0", "Введите текст или нажмите Ctrl+C дважды...")
+        self.input_text.insert("0.0", "Текст для перевода...")
 
-        # Правое поле (Перевод)
         self.output_text = ctk.CTkTextbox(self, width=300, corner_radius=10, fg_color="#2f3136", border_color="#202225")
         self.output_text.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
-        self.output_text.insert("0.0", "Здесь появится перевод...")
+        self.output_text.insert("0.0", "Здесь будет результат...")
 
-        # Кнопка перевода
         self.btn_translate = ctk.CTkButton(self, text="Translate", command=self.manual_translate, fg_color="#5865f2", hover_color="#4752c4")
         self.btn_translate.grid(row=2, column=0, columnspan=2, padx=20, pady=10)
 
-        # Статус-бар
-        self.status_label = ctk.CTkLabel(self, text="Система готова", font=ctk.CTkFont(size=12))
+        self.status_label = ctk.CTkLabel(self, text="Готов к работе", font=ctk.CTkFont(size=12))
         self.status_label.grid(row=3, column=0, columnspan=2, padx=20, pady=5)
 
-        # Фоновые процессы
         self.last_c_time = 0
         self.translated_storage = ""
         self.bind_hotkeys()
@@ -57,11 +50,17 @@ class TranslatorApp(ctk.CTk):
         try:
             response = requests.post(URL, json=payload, timeout=15)
             data = response.json()
+            
             if 'candidates' in data:
                 return data['candidates'][0]['content']['parts'][0]['text'].strip()
-            return f"Error: {data.get('error', {}).get('message', 'Unknown error')}"
+            elif 'error' in data:
+                err_msg = data['error'].get('message', '')
+                if "RESOURCE_EXHAUSTED" in str(data):
+                    return "Ошибка: Слишком много запросов. Подожди 20 сек."
+                return f"Google Error: {err_msg}"
+            return "Неизвестная ошибка сервера."
         except Exception as e:
-            return f"Connection Error: {str(e)}"
+            return f"Ошибка сети: {str(e)}"
 
     def update_ui_text(self, source, target):
         self.input_text.delete("0.0", "end")
@@ -72,6 +71,7 @@ class TranslatorApp(ctk.CTk):
 
     def manual_translate(self):
         text = self.input_text.get("0.0", "end").strip()
+        if not text: return
         self.status_label.configure(text="Перевожу...", text_color="yellow")
         def task():
             res = self.ai_request(text, "Translate to natural English.")
@@ -84,11 +84,11 @@ class TranslatorApp(ctk.CTk):
             now = time.time()
             if now - self.last_c_time < 0.5:
                 source = pyperclip.paste()
-                self.status_label.configure(text="ИИ думает...", text_color="#5865f2")
-                res = self.ai_request(source, "Translate to casual American English with Gen-Z slang.")
+                self.status_label.configure(text="Flash переводит...", text_color="#5865f2")
+                res = self.ai_request(source, "Translate to casual American English with Gen-Z slang (no cap, fr, vibe).")
                 self.update_ui_text(source, res)
-                self.deiconify() # Показать окно
-                self.status_label.configure(text="Перевод выполнен!", text_color="green")
+                self.deiconify() 
+                self.status_label.configure(text="Перевод завершен", text_color="green")
             self.last_c_time = now
 
         def on_ctrl_r():
@@ -102,10 +102,10 @@ class TranslatorApp(ctk.CTk):
     def check_startup(self):
         def task():
             res = self.ai_request("Hi", "Translate to Russian")
-            if "Error" in res:
-                self.status_label.configure(text=f"ОШИБКА СВЯЗИ: {res}", text_color="red")
+            if "Ошибка" in res or "Error" in res:
+                self.status_label.configure(text=f"Статус: {res}", text_color="red")
             else:
-                self.status_label.configure(text="Связь с Gemini установлена (Discord Edition)", text_color="green")
+                self.status_label.configure(text="Flash готов. Лимиты увеличены!", text_color="green")
         threading.Thread(target=task).start()
 
 if __name__ == "__main__":
